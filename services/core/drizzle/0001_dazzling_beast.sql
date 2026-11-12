@@ -1,0 +1,1 @@
+CREATE INDEX "kb_chunk_embedding_idx" ON "kb_chunk" USING hnsw ("embedding" vector_cosine_ops);

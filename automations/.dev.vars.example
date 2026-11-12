@@ -1,0 +1,5 @@
+# Variables del Worker en local (wrangler dev). En producción: CORE_URL va en wrangler.toml y
+# la clave se carga con `bunx wrangler secret put SERVICE_KEY`.
+CORE_URL=http://localhost:3000
+# Misma clave que SERVICE_KEY en services/core/.env
+SERVICE_KEY=dev-service-key

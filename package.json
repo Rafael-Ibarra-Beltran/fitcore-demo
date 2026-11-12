@@ -1,0 +1,23 @@
+{
+  "name": "quirelia-fitcore",
+  "private": true,
+  "workspaces": ["apps/*", "services/core", "packages/*"],
+  "scripts": {
+    "dev": "bun run --filter '*' dev",
+    "dev:core": "cd services/core && bun run dev",
+    "dev:admin": "cd apps/admin && bun run dev",
+    "dev:landing": "cd apps/landing && bun run dev",
+    "dev:ai": "cd services/ai && uv run --env-file .env uvicorn app.main:app --reload --port 8000",
+    "ai:ingest": "cd services/ai && uv run --env-file .env python -m app.rag",
+    "ai:eval": "cd services/ai && uv run --env-file .env python evals/run_evals.py",
+    "jobs:run": "bun scripts/run-job.ts",
+    "dev:vision": "cd services/vision && uv run --env-file .env python -m app.main",
+    "test:e2e": "cd e2e && bun test",
+    "test:vision": "cd services/vision && uv run pytest -q",
+    "test:ai": "cd services/ai && uv run pytest -q",
+    "db:up": "docker compose -f infra/docker-compose.yml up -d db",
+    "db:migrate": "cd services/core && bun run db:migrate",
+    "db:seed": "cd services/core && bun run db:seed",
+    "test": "cd services/core && bun test"
+  }
+}

@@ -1,0 +1,127 @@
+/* Hallmark · shape: app screen · genre: atmospheric · theme: custom · redesign: full · job: manage · idea: "El panel de la misma sala que la landing: tinta oscura, datos densos y el aforo por hora como protagonista." · vibe: "sala de control oscura, densa, atlética"
+ * paper: oklch(13% 0.03 215) · accent: oklch(80% 0.15 215) · display: Antonio · body: Figtree
+ * nav: barra lateral con logo, destino activo en acento; menú desplegable bajo 60rem · signature: la gráfica de aforo por hora · states: cargando, vacío, error, lleno
+ * axes: dark/display-condensed/chromatic-blue · posture: committed · contrast: pass · v2.0.0 */
+/* Hallmark · pre-emit critique: P4 H4 E4 S4 R4 V4 · weakest: E, el indicador del menú viaja por todo el menú en saltos largos; se acortó a 300 ms con salida suave y se apaga con reducir movimiento */
+/* Hallmark · answered F18 · data-slot es un atributo de los componentes shadcn (label, button), no un hueco de imagen */
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource/antonio/700.css";
+@import "@fontsource-variable/figtree/index.css";
+@import "./tokens.css";
+@import "./base.css" layer(base);
+
+@custom-variant dark (&:is(.dark *));
+
+/* Puente: los componentes shadcn leen estas variables; apuntan a los tokens de Hallmark. */
+@theme inline {
+    --font-heading: var(--font-body);
+    --font-sans: var(--font-body);
+    --color-sidebar-ring: var(--sidebar-ring);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar: var(--sidebar);
+    --color-ring: var(--ring);
+    --color-input: var(--input);
+    --color-border: var(--border);
+    --color-destructive: var(--destructive);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-secondary: var(--secondary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-primary: var(--primary);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-popover: var(--popover);
+    --color-card-foreground: var(--card-foreground);
+    --color-card: var(--card);
+    --color-foreground: var(--foreground);
+    --color-background: var(--background);
+    --radius-sm: calc(var(--radius) * 0.6);
+    --radius-md: calc(var(--radius) * 0.8);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) * 1.4);
+    --radius-2xl: calc(var(--radius) * 1.8);
+    --radius-3xl: calc(var(--radius) * 2.2);
+    --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+    --background: var(--color-paper);
+    --foreground: var(--color-ink);
+    --card: var(--color-paper-2);
+    --card-foreground: var(--color-ink);
+    --popover: var(--color-paper-2);
+    --popover-foreground: var(--color-ink);
+    --primary: var(--color-accent);
+    --primary-foreground: var(--color-accent-ink);
+    --secondary: var(--color-paper-3);
+    --secondary-foreground: var(--color-ink);
+    --muted: var(--color-paper-3);
+    --muted-foreground: var(--color-muted);
+    --accent: var(--color-paper-3);
+    --accent-foreground: var(--color-ink);
+    --destructive: var(--color-error);
+    --border: var(--color-line);
+    --input: var(--color-rule);
+    --ring: var(--color-focus);
+    --radius: 6px;
+    --sidebar: var(--color-paper-2);
+    --sidebar-foreground: var(--color-ink-2);
+    --sidebar-primary: var(--color-accent);
+    --sidebar-primary-foreground: var(--color-accent-ink);
+    --sidebar-accent: var(--color-paper-3);
+    --sidebar-accent-foreground: var(--color-ink);
+    --sidebar-border: var(--color-line);
+    --sidebar-ring: var(--color-focus);
+}
+
+@layer base {
+  * { @apply border-border; }
+  body { @apply bg-background text-foreground; font-variant-numeric: tabular-nums; }
+  [data-slot=button]:not(:disabled):hover { transform: translateY(-1px); }
+  button:not(:disabled):active, [data-slot=button]:not(:disabled):active { transform: translateY(1px); }
+  button:disabled, input:disabled, select:disabled { cursor: not-allowed; color: var(--color-muted); background-color: var(--color-paper-3); }
+  h2, h3 { font-family: var(--font-body); text-transform: none; line-height: 1.2; } /* Antonio queda para el título de página y la marca */
+}
+
+/* ---------- Estado como etiqueta de texto (sin puntos decorativos) ---------- */
+.status { display: inline-flex; align-items: center; min-height: 24px; padding: 0 var(--space-sm); border-radius: var(--radius-pill); background: var(--color-paper-3); color: var(--color-ink-2); font-size: var(--text-xs); font-weight: 600; text-transform: capitalize; white-space: nowrap; }
+.status[data-tone="good"] { color: var(--color-success); }
+.status[data-tone="bad"] { color: var(--color-error); }
+.status[data-tone="live"] { color: var(--color-accent); }
+
+/* ---------- Tablas densas ---------- */
+.data-table th { height: 40px; color: var(--color-muted); font-weight: 500; font-size: var(--text-sm); }
+.data-table td { height: 48px; }
+.data-table tbody tr { border-color: var(--color-line); }
+
+.page-title { font-family: var(--font-display); font-size: var(--text-display-s); font-weight: 700; line-height: 1; text-transform: uppercase; }
+.skeleton { background: var(--color-paper-3); border-radius: var(--radius-card); animation: pulse 1.6s var(--ease-in-out) infinite; }
+@keyframes pulse { 50% { opacity: 0.45; } }
+
+/* ---------- Movimiento: solo transform y opacity; reducir movimiento lo apaga desde base.css ---------- */
+@keyframes rise { from { opacity: 0; transform: translateY(12px); } }
+@keyframes grow { from { transform: scaleY(0); } }
+.rise { animation: rise 0.5s var(--ease-out) both; animation-delay: calc(var(--i, 0) * 45ms); }
+.page-in { animation: rise 0.35s var(--ease-out) both; }
+.data-table tbody tr:hover td:first-child { box-shadow: inset 3px 0 0 var(--color-accent); }
+
+/* ---------- Gráfica de aforo ---------- */
+.bar { transform-origin: bottom; animation: grow 0.7s var(--ease-out) both; animation-delay: calc(var(--i, 0) * 35ms); border-radius: 3px 3px 0 0; background: color-mix(in oklab, var(--color-accent) 48%, var(--color-paper-2)); transition: filter var(--dur-short) var(--ease-out); }
+.bar[data-peak="true"] { background: var(--color-accent); }
+.bar:hover, .bar:focus-visible { filter: brightness(1.12); }
+
+/* ---------- Login ---------- */
+.login-veil { background: color-mix(in oklab, var(--color-paper) 78%, transparent); }
+.kpi { font-size: clamp(2.5rem, 2.5vw + 1.5rem, 3.75rem); font-weight: 600; line-height: 1; letter-spacing: -0.02em; }
+.kpi--long { font-size: clamp(1.75rem, 1.4vw + 1rem, 2.5rem); }
+
+/* ---------- Indicador del menú: solo se mueve con transform ---------- */
+.nav-indicator { position: absolute; left: 12px; right: 12px; top: 0; height: 44px; border-radius: var(--radius-card); background: var(--color-paper-3); box-shadow: inset 3px 0 0 var(--color-accent); pointer-events: none; }
+.nav-indicator[data-ready="true"] { transition: transform 300ms var(--ease-out); }

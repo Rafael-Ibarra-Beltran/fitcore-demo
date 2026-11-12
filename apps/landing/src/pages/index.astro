@@ -1,0 +1,75 @@
+---
+import '../styles.css'
+import { APP_NAME } from '@fitcore/shared'
+import Logo from '../components/Logo.astro'
+import WhatsAppFab from '../components/WhatsAppFab.astro'
+import LeadForm from '../components/LeadForm'
+import { Plans, Schedule } from '../components/Catalog'
+const wa = `https://wa.me/${import.meta.env.PUBLIC_WHATSAPP ?? '5215512345678'}?text=${encodeURIComponent('Hola, quiero información sobre ' + APP_NAME)}`
+---
+<!doctype html>
+<html lang="es-MX">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{APP_NAME} Gym · Entrena sin excusas</title>
+    <meta name="description" content="Planes, horarios de clases y clase de prueba gratis en FitCore Gym." />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preload" as="image" href="/media/hero.webp" />
+    <style is:global>html, body { overflow-x: clip; }</style>
+  </head>
+  <body>
+    <header class="nav">
+      <div class="container">
+        <Logo />
+        <nav class="nav__links" aria-label="Principal">
+          <a href="#planes">Planes</a><a href="#horarios">Horarios</a><a href="#contacto">Contacto</a>
+          <a href="#contacto" class="btn btn--sm">Clase de prueba</a>
+        </nav>
+      </div>
+    </header>
+    <main id="top">
+      <section class="hero">
+        <video class="hero__video" id="hero-video" src="/media/hero.mp4" poster="/media/hero.webp" autoplay muted loop playsinline preload="metadata" aria-hidden="true"></video>
+        <div class="hero__shade"></div>
+        <div class="container hero__body">
+          <h1>Tu mejor versión empieza hoy</h1>
+          <p class="lead">Clases dirigidas, equipo completo y entrenadores que te conocen por nombre.</p>
+          <div class="hero__actions">
+            <a href="#contacto" class="btn">Reservar clase gratis</a>
+            <a href={wa} class="btn btn--ghost">Escríbenos por WhatsApp</a>
+          </div>
+        </div>
+        <button class="hero__pause" id="hero-pause" type="button" aria-pressed="false">Pausar video</button>
+      </section>
+      <Schedule client:load />
+      <Plans client:load />
+      <section id="contacto" class="contact">
+        <img class="contact__bg" src="/media/contact.webp" alt="" loading="lazy" />
+        <div class="contact__shade"></div>
+        <div class="container">
+          <div>
+            <h2 class="section-title">Empieza hoy</h2>
+            <p class="lead" style="margin-top: var(--space-md)">Déjanos tus datos y te escribimos para agendar tu clase de prueba.</p>
+          </div>
+          <LeadForm client:load />
+        </div>
+      </section>
+    </main>
+    <footer class="footer">
+      <div class="container">
+        <p><strong>Horario</strong><br />Lunes a viernes de 6:00 a 22:00.<br />Sábados de 8:00 a 14:00.</p>
+        <p><strong>Contacto</strong><br /><a href={wa}>Escríbenos por WhatsApp</a></p>
+        <p>Demo ficticia desarrollada por Quirelia Studio. Los datos y precios no son reales.<br />Videos y fotos en Pexels: cottonbro studio, Boris Ivas, Official Amit, khezez y arturo-eg.</p>
+      </div>
+      <WhatsAppFab href={wa} />
+    </footer>
+    <script>
+      const v = document.getElementById('hero-video') as HTMLVideoElement
+      const b = document.getElementById('hero-pause') as HTMLButtonElement
+      const set = (paused: boolean) => { paused ? v.pause() : v.play().catch(() => {}); b.textContent = paused ? 'Reproducir video' : 'Pausar video'; b.setAttribute('aria-pressed', String(paused)) }
+      if (matchMedia('(prefers-reduced-motion: reduce)').matches) set(true)
+      b.addEventListener('click', () => set(!v.paused))
+    </script>
+  </body>
+</html>

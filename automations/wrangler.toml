@@ -1,0 +1,12 @@
+name = "fitcore-automations"
+main = "src/index.ts"
+compatibility_date = "2026-11-01"
+
+# Cinco disparadores, el máximo del plan gratuito. Horas en UTC (ver src/index.ts).
+[triggers]
+crons = ["0 16 * * *", "*/15 * * * *", "0 17 * * *", "0 15 * * *", "0 14 * * 1"]
+
+[vars]
+CORE_URL = "http://localhost:3000" # en producción: la URL pública del núcleo
+
+# La clave de servicio es secreta: wrangler secret put SERVICE_KEY

@@ -1,0 +1,12 @@
+node_modules
+dist
+.env
+.astro
+*.log
+.venv
+.dev.vars
+services/vision/models/
+services/vision/samples/
+__pycache__/
+.pytest_cache/
+.ruff_cache/

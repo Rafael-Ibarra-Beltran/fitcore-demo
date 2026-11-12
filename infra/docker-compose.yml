@@ -1,0 +1,41 @@
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: fitcore
+      POSTGRES_PASSWORD: fitcore
+      POSTGRES_DB: fitcore
+    ports: ["5432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fitcore"]
+      interval: 3s
+      retries: 20
+  # docker compose --profile ai up ai   (el núcleo corre en el host: bun run dev:core)
+  ai:
+    profiles: ["ai"]
+    build: ../services/ai
+    env_file:
+      - path: ../services/ai/.env
+        required: false
+    environment:
+      DATABASE_URL: postgres://fitcore:fitcore@db:5432/fitcore
+      CORE_URL: http://host.docker.internal:3000
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    depends_on:
+      db: { condition: service_healthy }
+    ports: ["8000:8000"]
+  # docker compose --profile vision up vision   (video en services/vision/samples/; la webcam solo funciona sin Docker)
+  vision:
+    profiles: ["vision"]
+    build: ../services/vision
+    env_file:
+      - path: ../services/vision/.env
+        required: false
+    environment:
+      CORE_URL: http://host.docker.internal:3000
+      VIDEO_SOURCE: /samples/muestra.mp4
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    volumes: ["../services/vision/samples:/samples:ro"]
+volumes:
+  pgdata:
