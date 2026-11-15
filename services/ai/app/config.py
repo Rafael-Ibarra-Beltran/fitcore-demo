@@ -26,5 +26,13 @@ WA_TEMPLATE_LANG = e("WA_TEMPLATE_LANG", "es_MX")
 WA_API_VERSION = e("WA_API_VERSION", "v25.0")  # v21.0 termina su vida en 2027-01-21
 WA_PHONE_ID = e("WA_PHONE_ID", "")
 WA_SKIP_SIGNATURE = flag("WA_SKIP_SIGNATURE")
+
+# En producción no se arranca con la clave de servicio de desarrollo ni con otras URLs por defecto.
+if e("ENV") == "production":
+    _missing = [k for k in ("DATABASE_URL", "CORE_URL", "SERVICE_KEY", "ALLOWED_ORIGINS") if not e(k)]
+    if _missing:
+        raise RuntimeError(f"Faltan variables de entorno: {', '.join(_missing)}")
+    if SERVICE_KEY == "dev-service-key":
+        raise RuntimeError("SERVICE_KEY no puede ser la clave de desarrollo")
 MAX_INPUT = 1000
 MAX_STEPS = 5

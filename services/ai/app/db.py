@@ -5,7 +5,7 @@ from . import config
 
 def query(sql: str, params: tuple = ()) -> list[tuple]:
     # shortcut: una conexión por consulta, sin pool; basta para la demo, usar pool si hay carga.
-    with psycopg.connect(config.DATABASE_URL, autocommit=True) as c:
+    with psycopg.connect(config.DATABASE_URL, autocommit=True, prepare_threshold=None) as c:  # sin sentencias preparadas: el pooler de Supabase en modo transacción no las admite
         cur = c.execute(sql, params)
         return cur.fetchall() if cur.description else []
 

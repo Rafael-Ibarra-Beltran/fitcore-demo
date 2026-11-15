@@ -7,6 +7,6 @@ compatibility_date = "2026-11-01"
 crons = ["0 16 * * *", "*/15 * * * *", "0 17 * * *", "0 15 * * *", "0 14 * * 1"]
 
 [vars]
-CORE_URL = "http://localhost:3000" # en producción: la URL pública del núcleo
+CORE_URL = "https://api.fitcore.quirelia.mx"
 
 # La clave de servicio es secreta: wrangler secret put SERVICE_KEY

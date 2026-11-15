@@ -1,0 +1,15 @@
+**/node_modules
+**/dist
+**/.venv
+**/.astro
+**/.tanstack
+**/__pycache__
+.git
+.env
+**/.env
+**/.dev.vars
+services/vision/models
+services/vision/samples
+e2e
+docs
+assets

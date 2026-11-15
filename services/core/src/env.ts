@@ -26,6 +26,9 @@ if (env.mcpKey && env.mcpKey.length < 24) throw new Error("MCP_API_KEY debe tene
 
 // En producción no se arranca con secretos de desarrollo.
 if (e.NODE_ENV === "production") {
-  const missing = ["BETTER_AUTH_SECRET", "SERVICE_KEY", ...(env.skipTurnstile ? [] : ["TURNSTILE_SECRET"])].filter((k) => !e[k]);
+  const missing = [
+    "DATABASE_URL", "BASE_URL", "ALLOWED_ORIGINS", "AI_URL", "BETTER_AUTH_SECRET", "SERVICE_KEY",
+    ...(env.skipTurnstile ? [] : ["TURNSTILE_SECRET"]),
+  ].filter((k) => !e[k]);
   if (missing.length) throw new Error(`Faltan variables de entorno: ${missing.join(", ")}`);
 }
