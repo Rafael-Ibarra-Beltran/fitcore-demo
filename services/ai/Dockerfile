@@ -8,4 +8,4 @@ RUN uv sync --no-dev
 COPY app ./app
 # Detrás del proxy de Render: sin esto el rate limit por IP vería siempre la IP del proxy.
 # En Render hay que definir ENV=production (activa el guard de config.py); en local no.
-CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--forwarded-allow-ips", "*"]
+CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

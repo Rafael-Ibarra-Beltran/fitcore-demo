@@ -134,5 +134,7 @@ section { position: relative; }
   transition: transform var(--dur-short) var(--ease-out);
 }
 .wa-fab svg { width: 32px; height: 32px; }
+/* El chat flotante va justo encima del botón de WhatsApp. */
+.fcw { --fcw-bottom: 100px; --fcw-bottom-m: 92px; }
 .wa-fab:hover { transform: scale(1.08); }
 .wa-fab:active { transform: scale(0.96); }

@@ -3,6 +3,7 @@ import { createRouter, RouterProvider } from '@tanstack/react-router'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
+import '@fitcore/chat-widget/styles.css'
 import { routeTree } from './routeTree.gen'
 
 export const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: 15_000 } } })

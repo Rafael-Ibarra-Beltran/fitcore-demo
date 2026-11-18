@@ -13,6 +13,7 @@
     "jobs:run": "bun scripts/run-job.ts",
     "dev:vision": "cd services/vision && uv run --env-file .env python -m app.main",
     "test:e2e": "cd e2e && bun test",
+    "test:widget": "cd packages/chat-widget && bun test",
     "test:vision": "cd services/vision && uv run pytest -q",
     "test:ai": "cd services/ai && uv run pytest -q",
     "db:up": "docker compose -f infra/docker-compose.yml up -d db",

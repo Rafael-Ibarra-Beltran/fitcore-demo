@@ -6,21 +6,35 @@ from collections import defaultdict
 
 from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, PlainTextResponse
+from fastapi.responses import HTMLResponse, PlainTextResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
-from . import config, rag, service, whatsapp
+from . import config, rag, service, webchat, whatsapp
 
 log = logging.getLogger("ai")
 app = FastAPI(title="FitCore AI")
-app.add_middleware(CORSMiddleware, allow_origins=config.ORIGINS, allow_methods=["POST"], allow_headers=["content-type"])
+app.add_middleware(CORSMiddleware, allow_origins=config.ORIGINS, allow_methods=["GET", "POST"], allow_headers=["content-type", "authorization"])
 
 _hits: dict[str, list[float]] = defaultdict(list)
+
+
+def client_ip(req: Request) -> str:
+    """IP del cliente. cf-connecting-ip lo reescribe Cloudflare; si no, se toma de X-Forwarded-For la entrada que añadió
+    nuestro proxy (el cliente solo puede añadir entradas a la izquierda, nunca a la derecha)."""
+    if ip := req.headers.get("cf-connecting-ip"):
+        return ip.strip()
+    parts = [p.strip() for p in req.headers.get("x-forwarded-for", "").split(",") if p.strip()]
+    if len(parts) >= config.TRUSTED_HOPS:
+        return parts[-config.TRUSTED_HOPS]
+    return req.client.host if req.client else "?"
 
 
 def limit_ip(ip: str, n: int = 10, window: float = 60) -> None:
     # shortcut: en memoria y por instancia; pasar a Redis/DB si hay varias instancias.
     now = time.monotonic()
+    if len(_hits) > 5000:  # poda: sin esto, una IP distinta por petición haría crecer el dict sin límite
+        for k in [k for k, v in _hits.items() if not v or now - v[-1] >= window]:
+            del _hits[k]
     _hits[ip] = [t for t in _hits[ip] if now - t < window]
     if len(_hits[ip]) >= n:
         raise HTTPException(429, "Demasiadas solicitudes")
@@ -81,9 +95,23 @@ class ChatIn(BaseModel):
 @app.post("/chat")
 def chat(body: ChatIn, req: Request):
     """Chat web: anónimo, sin herramientas personales (el teléfono no está verificado)."""
-    limit_ip(req.client.host if req.client else "?")
+    limit_ip(client_ip(req))
+    if webchat.web_messages_today() >= config.GLOBAL_DAILY_LIMIT:  # mismo tope global que el chat del widget: /chat no lleva token
+        raise HTTPException(429, webchat.BUSY_MSG)
     reply, cid = service.handle(body.message, "web", conversation_id=body.conversation_id)
     return {"reply": reply, "conversation_id": cid}
+
+
+@app.post("/chat/stream")
+def chat_stream(body: ChatIn, req: Request, authorization: str | None = Header(None)):
+    """Chat web de la demo con SSE. Exige el token de invitado que emite el núcleo (Turnstile o sesión del panel)."""
+    limit_ip(client_ip(req), n=30)
+    try:
+        cid = webchat.verify((authorization or "").removeprefix("Bearer ").strip())
+    except webchat.Denied as e:
+        raise HTTPException(e.status, str(e))
+    return StreamingResponse(webchat.stream(cid, body.message), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 
 def service_key(x_service_key: str | None = Header(None)) -> None:

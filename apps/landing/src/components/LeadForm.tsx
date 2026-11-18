@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
+import { loadTurnstile } from '@fitcore/chat-widget'
 import { publicLeadInput } from '@fitcore/shared'
 
 const API = (import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3000')
 const SITEKEY = (import.meta.env.PUBLIC_TURNSTILE_SITEKEY ?? '1x00000000000000000000AA')
-
-declare global { interface Window { turnstile?: { render: (el: HTMLElement, o: { sitekey: string; theme?: string; appearance?: string; callback: (t: string) => void }) => void } } }
 
 export default function LeadForm() {
   const box = useRef<HTMLDivElement>(null)
@@ -13,11 +12,7 @@ export default function LeadForm() {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    const s = document.createElement('script')
-    s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js'
-    s.async = true
-    s.onload = () => box.current && window.turnstile?.render(box.current, { sitekey: SITEKEY, theme: 'dark', appearance: 'interaction-only', callback: (t) => { token.current = t } })
-    document.head.appendChild(s)
+    loadTurnstile().then((t) => box.current && t.render(box.current, { sitekey: SITEKEY, theme: 'dark', appearance: 'interaction-only', callback: (tok: string) => { token.current = tok } })).catch(() => null)
   }, [])
 
   async function submit(e: React.FormEvent<HTMLFormElement>) {

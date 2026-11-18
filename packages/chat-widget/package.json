@@ -1,0 +1,11 @@
+{
+  "name": "@fitcore/chat-widget",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "exports": { ".": "./src/index.ts", "./styles.css": "./src/chat-widget.css" },
+  "dependencies": { "@fitcore/shared": "workspace:*" },
+  "peerDependencies": { "react": "^19" },
+  "devDependencies": { "@types/react": "^19.3.0", "typescript": "~5.9.0" }
+}

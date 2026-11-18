@@ -4,6 +4,7 @@ import { APP_NAME } from '@fitcore/shared'
 import Logo from '../components/Logo.astro'
 import WhatsAppFab from '../components/WhatsAppFab.astro'
 import LeadForm from '../components/LeadForm'
+import ChatIsland from '../components/ChatIsland'
 import { Plans, Schedule } from '../components/Catalog'
 const wa = `https://wa.me/${import.meta.env.PUBLIC_WHATSAPP ?? '5215512345678'}?text=${encodeURIComponent('Hola, quiero información sobre ' + APP_NAME)}`
 ---
@@ -64,6 +65,8 @@ const wa = `https://wa.me/${import.meta.env.PUBLIC_WHATSAPP ?? '5215512345678'}?
       </div>
       <WhatsAppFab href={wa} />
     </footer>
+    <!-- Fuera del footer: sus reglas `.footer a` deformaban los enlaces del chat -->
+    <ChatIsland client:only="react" whatsapp={import.meta.env.PUBLIC_WHATSAPP ?? '5215512345678'} />
     <script>
       const v = document.getElementById('hero-video') as HTMLVideoElement
       const b = document.getElementById('hero-pause') as HTMLButtonElement

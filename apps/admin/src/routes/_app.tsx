@@ -2,6 +2,7 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { createFileRoute, Link, Outlet, redirect, useRouterState } from '@tanstack/react-router'
 import { LayoutDashboard, LogOut, Menu, X } from 'lucide-react'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { ChatWidget } from '@fitcore/chat-widget'
 import { APP_NAME } from '@fitcore/shared'
 import { Logo } from '@/components/Logo'
 import { Button } from '@/components/ui/button'
@@ -82,6 +83,12 @@ function Layout() {
         </header>
         <main className="mx-auto w-full max-w-[1400px] p-4 min-[60rem]:p-8"><div key={path} className="page-in"><Outlet /></div></main>
       </div>
+      <ChatWidget
+        coreUrl={((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/$/, '')}
+        aiUrl={((import.meta.env.VITE_AI_URL as string | undefined) ?? 'http://localhost:8000').replace(/\/$/, '')}
+        whatsapp={import.meta.env.VITE_WHATSAPP as string | undefined}
+        turnstileSiteKey={(import.meta.env.VITE_TURNSTILE_SITEKEY as string | undefined) ?? '1x00000000000000000000AA'}
+      />
     </div>
   )
 }

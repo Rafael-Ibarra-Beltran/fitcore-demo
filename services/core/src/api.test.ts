@@ -1,5 +1,6 @@
 // Requiere Postgres levantado y sembrado (bun run db:up && db:migrate && db:seed).
 import { afterAll, beforeAll, expect, test } from "bun:test";
+import { createHmac } from "node:crypto";
 import { and, count, eq } from "drizzle-orm";
 import { app } from "./app";
 import { db, sql } from "./db";
@@ -292,4 +293,40 @@ test("/api/occupancy/now: lo lee cualquier rol, pero solo el servicio escribe le
   if (body) expect(body).toMatchObject({ max: env.occupancyMax });
   expect((await call("/api/occupancy", { ...json({ camera: "x", people: 1 }), headers: { ...staff, "content-type": "application/json" } })).status).toBe(403);
   expect((await call("/api/occupancy/now")).status).toBe(401);
+});
+
+test("chat web: la sesión crea una conversación anónima y firma un token; las reservas viejas del invitado caducan", async () => {
+  const first = await call("/api/public/chat/session", json({})); // crea al socio invitado si falta
+  await db.delete(T.conversation).where(eq(T.conversation.id, (await first.json()).conversationId));
+  const [guest] = await db.select().from(T.gymMember).where(eq(T.gymMember.phone, env.demoMemberPhone));
+  expect(guest).toBeDefined();
+  const [klass] = await db.select().from(T.gymClass).limit(1);
+  const old = new Date(Date.now() - 2 * 3_600_000);
+  const [oldBooking] = await db.insert(T.booking).values({ organizationId: guest.organizationId, classId: klass.id, memberId: guest.id, createdAt: old }).returning();
+  const r = await call("/api/public/chat/session", json({}));
+  expect(r.status).toBe(201);
+  const { token, conversationId } = await r.json();
+  const [body, sig] = token.split(".");
+  expect(sig).toBe(createHmac("sha256", env.chatTokenSecret).update(body).digest("base64url"));
+  expect(JSON.parse(Buffer.from(body, "base64url").toString()).c).toBe(conversationId);
+  const [conv] = await db.select().from(T.conversation).where(eq(T.conversation.id, conversationId));
+  expect(conv).toMatchObject({ channel: "web", memberId: null, leadId: null });
+  expect(await db.select().from(T.booking).where(eq(T.booking.id, oldBooking.id))).toEqual([]);
+  // Un clic repetido en "Reservar" no gasta cupo: la segunda reserva del mismo socio se rechaza.
+  const book = () => call("/api/bookings", { ...json({ classId: klass.id, memberId: guest.id }), headers: svc });
+  expect((await book()).status).toBe(201);
+  expect((await book()).status).toBe(409);
+  await db.delete(T.booking).where(and(eq(T.booking.classId, klass.id), eq(T.booking.memberId, guest.id)));
+  await db.delete(T.conversation).where(eq(T.conversation.id, conversationId));
+});
+
+test("chat web: crea al socio invitado con membresía activa si falta (producción no corre el seed)", async () => {
+  await db.delete(T.gymMember).where(eq(T.gymMember.phone, env.demoMemberPhone));
+  const r = await call("/api/public/chat/session", json({}));
+  expect(r.status).toBe(201);
+  const [guest] = await db.select().from(T.gymMember).where(eq(T.gymMember.phone, env.demoMemberPhone));
+  expect(guest).toMatchObject({ name: "Invitado Demo", status: "activo" });
+  const ms = await db.select().from(T.membership).where(eq(T.membership.memberId, guest.id));
+  expect(ms.some((m) => m.status === "activa" && m.endsAt >= today())).toBe(true);
+  await db.delete(T.conversation).where(eq(T.conversation.id, (await r.json()).conversationId));
 });

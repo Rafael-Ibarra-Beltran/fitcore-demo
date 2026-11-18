@@ -1,6 +1,6 @@
 import { zValidator } from "@hono/zod-validator";
 import * as S from "@fitcore/shared";
-import { and, count, eq, gte, isNull, lt, lte, or, sql as dsql, sum } from "drizzle-orm";
+import { and, count, eq, gte, inArray, isNull, lt, lte, or, sql as dsql, sum } from "drizzle-orm";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { z } from "zod";
@@ -14,6 +14,7 @@ import { JOB_NAMES, runJob } from "./jobs";
 import { mcpApp } from "./mcp";
 import { addDays, businessStats, expiringMemberships, inactiveMembers, occupancyNow, today } from "./queries";
 import { rateLimit } from "./ratelimit";
+import { signChatToken } from "./chat-token";
 import { requireRole, tenant, type Env } from "./tenant";
 
 const daysParam = (c: { req: { query: (k: string) => string | undefined } }, def: number) =>
@@ -33,20 +34,58 @@ app.on(["GET", "POST"], "/api/auth/*", (c) => auth.handler(c.req.raw));
 // ---------- Públicas ----------
 const pub = new Hono();
 
+const turnstileOk = async (token: string | undefined) => {
+  if (env.skipTurnstile) return true;
+  const r = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+    method: "POST",
+    body: new URLSearchParams({ secret: env.turnstileSecret, response: token ?? "" }),
+  }).catch(() => null);
+  if (!r) return null; // no se pudo verificar
+  return !!((await r.json().catch(() => ({}))) as { success?: boolean }).success;
+};
+
 pub.post("/leads", rateLimit(5, 60_000), zValidator("json", S.publicLeadInput), async (c) => {
   const { turnstileToken, ...lead } = c.req.valid("json");
-  if (!env.skipTurnstile) {
-    const r = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
-      method: "POST",
-      body: new URLSearchParams({ secret: env.turnstileSecret, response: turnstileToken ?? "" }),
-    }).catch(() => null);
-    if (!r) return c.json({ error: "No se pudo verificar, intenta de nuevo" }, 503);
-    if (!((await r.json().catch(() => ({}))) as { success?: boolean }).success) return c.json({ error: "Verificación fallida" }, 400);
-  }
+  const ok = await turnstileOk(turnstileToken);
+  if (ok === null) return c.json({ error: "No se pudo verificar, intenta de nuevo" }, 503);
+  if (!ok) return c.json({ error: "Verificación fallida" }, 400);
   const org = await db.query.organization.findFirst({ where: eq(T.organization.slug, env.serviceOrgSlug) });
   if (!org) return c.json({ error: "Organización no existe" }, 500);
   await db.insert(T.lead).values({ ...lead, source: "landing", organizationId: org.id });
   return c.json({ ok: true }, 201);
+});
+
+async function ensureGuestMember(orgId: string) {
+  const [existing] = await db.select({ id: T.gymMember.id }).from(T.gymMember)
+    .where(and(eq(T.gymMember.organizationId, orgId), eq(T.gymMember.phone, env.demoMemberPhone))).limit(1);
+  const memberId = existing?.id ?? (await db.insert(T.gymMember).values({
+    organizationId: orgId, name: "Invitado Demo", phone: env.demoMemberPhone, status: "activo", joinedAt: today(),
+  }).returning({ id: T.gymMember.id }))[0].id;
+  const [active] = await db.select({ id: T.membership.id }).from(T.membership)
+    .where(and(eq(T.membership.memberId, memberId), eq(T.membership.status, "activa"), gte(T.membership.endsAt, today()))).limit(1);
+  if (!active) {
+    const [plan] = await db.select({ id: T.plan.id }).from(T.plan).where(eq(T.plan.organizationId, orgId)).limit(1);
+    if (plan) await db.insert(T.membership).values({ organizationId: orgId, memberId, planId: plan.id, startsAt: today(), endsAt: addDays(today(), 365), status: "activa" });
+  }
+}
+
+// Sesión del chat web: crea una conversación anónima y devuelve un token firmado que el servicio de IA verifica.
+// Siempre exige Turnstile, también con sesión del panel: /demo/login y el registro abierto dan sesión a cualquiera.
+pub.post("/chat/session", rateLimit(5, 60_000), zValidator("json", z.object({ turnstileToken: z.string().max(4096).optional() })), async (c) => {
+  const ok = await turnstileOk(c.req.valid("json").turnstileToken);
+  if (ok === null) return c.json({ error: "No se pudo verificar, intenta de nuevo" }, 503);
+  if (!ok) return c.json({ error: "Verificación fallida" }, 400);
+  const org = await db.query.organization.findFirst({ where: eq(T.organization.slug, env.serviceOrgSlug) });
+  if (!org) return c.json({ error: "Organización no existe" }, 500);
+  // El socio invitado se crea aquí si falta (el seed borra la organización entera y no debe correr en producción).
+  await ensureGuestMember(org.id);
+  // Limpieza perezosa (sin cron): las reservas del socio invitado, compartido por todos los visitantes, caducan a la hora.
+  await db.delete(T.booking).where(and(
+    eq(T.booking.organizationId, org.id), lt(T.booking.createdAt, new Date(Date.now() - 3_600_000)),
+    inArray(T.booking.memberId, db.select({ id: T.gymMember.id }).from(T.gymMember).where(and(eq(T.gymMember.organizationId, org.id), eq(T.gymMember.phone, env.demoMemberPhone)))),
+  ));
+  const [conv] = await db.insert(T.conversation).values({ organizationId: org.id, channel: "web" }).returning({ id: T.conversation.id });
+  return c.json({ token: signChatToken(conv.id), conversationId: conv.id }, 201);
 });
 
 // Plan y horario públicos para la landing (solo lectura, sin datos de socios).

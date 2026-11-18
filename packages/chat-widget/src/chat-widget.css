@@ -1,0 +1,139 @@
+/* Widget de chat. Hereda los tokens del host (--color-*, --font-*, --radius-card, --ease-out) con valores de respaldo. */
+.fcw {
+  --fcw-paper: var(--color-paper, oklch(13% 0.03 var(--hue, 215)));
+  --fcw-paper-2: var(--color-paper-2, oklch(17% 0.035 var(--hue, 215)));
+  --fcw-paper-3: var(--color-paper-3, oklch(22% 0.04 var(--hue, 215)));
+  --fcw-ink: var(--color-ink, oklch(96% 0.01 var(--hue, 215)));
+  --fcw-ink-2: var(--color-ink-2, oklch(84% 0.015 var(--hue, 215)));
+  --fcw-muted: var(--color-muted, oklch(72% 0.02 var(--hue, 215)));
+  --fcw-line: color-mix(in oklab, var(--color-rule, oklch(50% 0.04 var(--hue, 215))) 45%, transparent);
+  --fcw-accent: var(--color-accent, oklch(80% 0.15 var(--hue, 215)));
+  --fcw-accent-ink: var(--color-accent-ink, oklch(15% 0.03 var(--hue, 215)));
+  --fcw-focus: var(--color-focus, oklch(90% 0.13 var(--hue, 215)));
+  --fcw-ok: var(--color-success, oklch(78% 0.15 150));
+  --fcw-bad: var(--color-error, oklch(70% 0.19 25));
+  --fcw-radius: max(var(--radius-card, 6px), 6px);
+  --fcw-ease: var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1));
+  position: fixed; z-index: var(--z-toast, 500);
+  inset-inline-end: var(--fcw-right, 24px); inset-block-end: var(--fcw-bottom, 24px);
+  font-family: var(--font-body, ui-sans-serif, system-ui, sans-serif); font-size: 0.9375rem; line-height: 1.5; color: var(--fcw-ink);
+  display: flex; flex-direction: column; align-items: flex-end; gap: 12px;
+}
+.fcw *, .fcw *::before, .fcw *::after { box-sizing: border-box; }
+.fcw button, .fcw textarea { font: inherit; color: inherit; }
+.fcw :focus-visible { outline: 2px solid var(--fcw-focus); outline-offset: 2px; }
+.fcw-sr { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+/* Botón flotante */
+.fcw-launcher {
+  display: grid; place-items: center; inline-size: 60px; block-size: 60px; border: 0; border-radius: 50%; cursor: pointer;
+  background: var(--fcw-accent); color: var(--fcw-accent-ink);
+  box-shadow: 0 6px 24px color-mix(in oklab, var(--fcw-paper) 70%, transparent), 0 0 0 1px color-mix(in oklab, var(--fcw-accent) 40%, transparent);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .fcw-launcher { transition: transform 220ms var(--fcw-ease); }
+  .fcw-launcher:hover { transform: scale(1.07); }
+  .fcw-launcher:active { transform: scale(0.95); }
+}
+.fcw-launcher[data-open="true"] { background: var(--fcw-paper-3); color: var(--fcw-ink); }
+
+/* Panel: <dialog> no modal. Se oculta con display:none, así que entra y sale con @starting-style + display discreto. */
+.fcw-panel {
+  position: static; margin: 0; padding: 0; max-inline-size: none; max-block-size: none; color: inherit; /* reinicia los estilos del navegador para <dialog> */
+  display: none; flex-direction: column; inline-size: min(400px, calc(100vw - 32px)); block-size: min(640px, calc(100dvh - 120px));
+  background: var(--fcw-paper-2); border: 1px solid var(--fcw-line); border-radius: calc(var(--fcw-radius) + 8px); overflow: hidden;
+  box-shadow: 0 24px 64px color-mix(in oklab, black 55%, transparent);
+  opacity: 0; transform-origin: bottom right;
+  transition: opacity 200ms var(--fcw-ease), display 200ms;
+  transition-behavior: allow-discrete; /* fuera del shorthand: los navegadores viejos que no lo entienden descartarían todo el transition */
+  @media (prefers-reduced-motion: no-preference) {
+    translate: 0 12px; scale: 0.96;
+    transition: opacity 260ms var(--fcw-ease), translate 260ms var(--fcw-ease), scale 260ms var(--fcw-ease), display 260ms;
+    transition-behavior: allow-discrete;
+  }
+}
+.fcw-panel[open] { display: flex; opacity: 1; translate: 0; scale: 1; }
+@starting-style {
+  .fcw-panel[open] { opacity: 0; @media (prefers-reduced-motion: no-preference) { translate: 0 12px; scale: 0.96; } }
+}
+.fcw-head { display: flex; align-items: center; gap: 12px; padding: 14px 12px 14px 16px; border-block-end: 1px solid var(--fcw-line); background: var(--fcw-paper); }
+.fcw-head > div { flex: 1; min-inline-size: 0; }
+.fcw-head h2 { margin: 0; font: 700 1.35rem/1 var(--font-display, "Antonio", "Arial Narrow", sans-serif); text-transform: uppercase; letter-spacing: 0.02em; }
+.fcw-head p { margin: 4px 0 0; font-size: 0.75rem; color: var(--fcw-muted); display: flex; align-items: center; gap: 6px; }
+.fcw-dot { inline-size: 7px; block-size: 7px; border-radius: 50%; background: var(--fcw-ok); flex: none; }
+.fcw-dot[data-state="waking"] { background: var(--fcw-muted); @media (prefers-reduced-motion: no-preference) { animation: fcw-pulse 1.2s ease-in-out infinite; } }
+.fcw-avatar { flex: none; display: grid; place-items: center; inline-size: 28px; block-size: 28px; border-radius: 50%; background: color-mix(in oklab, var(--fcw-accent) 22%, var(--fcw-paper)); color: var(--fcw-accent); }
+.fcw-avatar--lg { inline-size: 40px; block-size: 40px; }
+.fcw-icon-btn { display: grid; place-items: center; inline-size: 36px; block-size: 36px; border: 0; border-radius: 50%; background: transparent; color: var(--fcw-muted); cursor: pointer; transition: background 120ms, color 120ms; }
+.fcw-icon-btn:hover { background: var(--fcw-paper-3); color: var(--fcw-ink); }
+
+/* Mensajes */
+.fcw-log { flex: 1; margin: 0; padding: 16px; overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: 14px; scrollbar-width: thin; scrollbar-color: var(--fcw-line) transparent; }
+.fcw-msg { display: flex; gap: 8px; max-inline-size: 100%; @media (prefers-reduced-motion: no-preference) { animation: fcw-in 280ms var(--fcw-ease); } }
+.fcw-msg--user { align-self: flex-end; max-inline-size: 85%; }
+.fcw-msg--user p { margin: 0; padding: 9px 14px; background: var(--fcw-accent); color: var(--fcw-accent-ink); border-radius: calc(var(--fcw-radius) + 10px) calc(var(--fcw-radius) + 10px) 4px calc(var(--fcw-radius) + 10px); overflow-wrap: anywhere; white-space: pre-wrap; }
+.fcw-body { min-inline-size: 0; flex: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.fcw-text { padding: 9px 14px; background: var(--fcw-paper-3); border-radius: 4px calc(var(--fcw-radius) + 10px) calc(var(--fcw-radius) + 10px) calc(var(--fcw-radius) + 10px); overflow-wrap: anywhere; max-inline-size: 100%; }
+.fcw-text > :first-child { margin-block-start: 0; } .fcw-text > :last-child { margin-block-end: 0; }
+.fcw-text p { margin: 0 0 0.5em; } .fcw-text ul, .fcw-text ol { margin: 0 0 0.5em; padding-inline-start: 1.25em; }
+.fcw-text a { color: var(--fcw-accent); text-underline-offset: 2px; } .fcw-text code { padding: 1px 5px; border-radius: 4px; background: var(--fcw-paper); font-size: 0.875em; }
+.fcw-text[data-streaming="true"] > :last-child::after { content: ""; display: inline-block; inline-size: 7px; block-size: 1em; margin-inline-start: 3px; vertical-align: text-bottom; background: var(--fcw-accent); border-radius: 2px; @media (prefers-reduced-motion: no-preference) { animation: fcw-blink 1s steps(1) infinite; } }
+.fcw-typing { display: inline-flex; gap: 4px; padding: 14px; background: var(--fcw-paper-3); border-radius: 4px 16px 16px 16px; }
+.fcw-typing i { inline-size: 6px; block-size: 6px; border-radius: 50%; background: var(--fcw-muted); @media (prefers-reduced-motion: no-preference) { animation: fcw-bounce 1.2s ease-in-out infinite; &:nth-child(2) { animation-delay: 0.15s; } &:nth-child(3) { animation-delay: 0.3s; } } }
+.fcw-tools { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 6px; }
+.fcw-tool { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 0.75rem; color: var(--fcw-muted); border: 1px solid var(--fcw-line); }
+.fcw-tool svg { color: var(--fcw-accent); } .fcw-tool[data-active="true"] svg { @media (prefers-reduced-motion: no-preference) { animation: fcw-spin 2.4s linear infinite; } }
+.fcw-error { margin: 0; font-size: 0.8125rem; color: var(--fcw-bad); } .fcw-hint { margin: 0; font-size: 0.75rem; color: var(--fcw-muted); }
+
+/* Tarjetas */
+.fcw-card { margin: 0; padding: 12px; inline-size: 100%; background: var(--fcw-paper); border: 1px solid var(--fcw-line); border-radius: var(--fcw-radius); @media (prefers-reduced-motion: no-preference) { animation: fcw-in 320ms var(--fcw-ease); } }
+.fcw-classes { list-style: none; display: flex; flex-direction: column; gap: 0; padding: 4px 12px; }
+.fcw-classes li { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 9px 0; border-block-end: 1px solid var(--fcw-line); }
+.fcw-classes li:last-child { border-block-end: 0; }
+.fcw-classes strong { display: block; } .fcw-classes span { font-size: 0.75rem; color: var(--fcw-muted); }
+.fcw-stat { display: flex; flex-direction: column; gap: 2px; font-size: 0.8125rem; color: var(--fcw-muted); }
+.fcw-stat__label { text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.6875rem; }
+.fcw-stat__value { font: 700 1.6rem/1.1 var(--font-display, "Antonio", sans-serif); color: var(--fcw-ink); text-transform: uppercase; } .fcw-stat__value small { font-size: 0.9rem; color: var(--fcw-muted); }
+.fcw-meter { margin-block-start: 8px; block-size: 6px; border-radius: 999px; background: var(--fcw-paper-3); overflow: hidden; }
+.fcw-meter span { display: block; block-size: 100%; background: var(--fcw-accent); border-radius: inherit; @media (prefers-reduced-motion: no-preference) { transition: inline-size 600ms var(--fcw-ease); } }
+.fcw-meter[data-full="true"] span { background: var(--fcw-bad); }
+.fcw-note { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; font-size: 0.8125rem; color: var(--fcw-ink-2); }
+.fcw-note--ok { border-color: var(--fcw-ok); } .fcw-note--bad { border-color: var(--fcw-bad); }
+.fcw-pill, .fcw-badge { display: inline-flex; align-items: center; padding: 5px 12px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; text-decoration: none; white-space: nowrap; }
+.fcw-pill { border: 1px solid var(--fcw-accent); background: transparent; color: var(--fcw-accent); cursor: pointer; transition: background 120ms, color 120ms; }
+.fcw-pill:hover { background: var(--fcw-accent); color: var(--fcw-accent-ink); }
+.fcw-badge--warn { color: var(--fcw-bad); border: 1px solid var(--fcw-bad); }
+
+/* Sugerencias, aviso y formulario */
+.fcw-suggest { margin: 0; padding: 0 16px 8px; list-style: none; display: flex; flex-wrap: wrap; gap: 8px; }
+.fcw-chip { padding: 6px 12px; border: 1px solid var(--fcw-line); border-radius: 999px; background: transparent; font-size: 0.8125rem; color: var(--fcw-ink-2); cursor: pointer; transition: border-color 120ms, background 120ms; }
+.fcw-chip:hover { border-color: var(--fcw-accent); background: color-mix(in oklab, var(--fcw-accent) 12%, transparent); }
+.fcw-banner { margin: 0; padding: 10px 16px; font-size: 0.8125rem; background: color-mix(in oklab, var(--fcw-bad) 14%, var(--fcw-paper)); color: var(--fcw-ink); }
+.fcw-link { padding: 0; border: 0; background: none; color: var(--fcw-accent); text-decoration: underline; cursor: pointer; }
+.fcw-form { display: flex; align-items: flex-end; gap: 8px; padding: 10px 12px; border-block-start: 1px solid var(--fcw-line); background: var(--fcw-paper); }
+.fcw-form textarea { flex: 1; inline-size: 100%; min-inline-size: 0; resize: none; field-sizing: content; min-block-size: 1lh; max-block-size: 6lh; padding: 9px 14px; border: 1px solid var(--fcw-line); border-radius: calc(var(--fcw-radius) + 6px); background: var(--fcw-paper-2); }
+.fcw-form textarea::placeholder { color: var(--fcw-muted); } .fcw-form textarea:disabled { opacity: 0.6; }
+.fcw-send { flex: none; display: grid; place-items: center; inline-size: 40px; block-size: 40px; border: 0; border-radius: 50%; background: var(--fcw-accent); color: var(--fcw-accent-ink); cursor: pointer; transition: opacity 120ms; }
+@media (prefers-reduced-motion: no-preference) { .fcw-send { transition: transform 120ms, opacity 120ms; } .fcw-send:hover:not(:disabled) { transform: scale(1.06); } }
+.fcw-send:hover:not(:disabled) { filter: brightness(1.08); }
+.fcw-send:disabled { opacity: 0.35; cursor: not-allowed; }
+.fcw-foot { margin: 0; padding: 0 12px 8px; text-align: center; font-size: 0.6875rem; color: var(--fcw-muted); background: var(--fcw-paper); }
+
+/* Celular: hoja inferior casi a pantalla completa */
+@media (max-width: 40rem) {
+  .fcw { inset-inline-end: var(--fcw-right-m, 16px); inset-block-end: var(--fcw-bottom-m, 16px); }
+  .fcw:has(.fcw-panel[open]) { inset: 0; align-items: stretch; justify-content: flex-end; padding: 0; gap: 0; background: var(--color-scrim, color-mix(in oklab, black 55%, transparent)); }
+  .fcw:has(.fcw-panel[open]) .fcw-launcher { display: none; }
+  .fcw-panel { inline-size: 100%; block-size: min(92dvh, 100%); border-radius: 20px 20px 0 0; border-inline: 0; border-block-end: 0; padding-block-end: env(safe-area-inset-bottom); }
+  .fcw-form textarea { font-size: 16px; } /* evita el zoom de iOS al enfocar */
+}
+@keyframes fcw-in { from { opacity: 0; transform: translateY(6px); } }
+@keyframes fcw-blink { 50% { opacity: 0; } }
+@keyframes fcw-bounce { 0%, 60%, 100% { transform: translateY(0); opacity: 0.5; } 30% { transform: translateY(-4px); opacity: 1; } }
+@keyframes fcw-pulse { 50% { opacity: 0.3; } }
+@keyframes fcw-spin { to { transform: rotate(360deg); } }
+/* Punteros táctiles: objetivos de al menos 44px */
+@media (pointer: coarse) {
+  .fcw-chip, .fcw-pill, .fcw-icon-btn { min-block-size: 44px; }
+  .fcw-icon-btn { min-inline-size: 44px; }
+}

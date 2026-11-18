@@ -14,6 +14,8 @@ export const env = {
   serviceOrgSlug: e.SERVICE_ORG_SLUG ?? "fitcore-demo",
   // Clave de prueba de Cloudflare que siempre pasa. Producción: clave real.
   turnstileSecret: e.TURNSTILE_SECRET ?? "1x0000000000000000000000000000000AA",
+  chatTokenSecret: e.CHAT_TOKEN_SECRET ?? "dev-chat-secret-dev-chat-secret", // la misma en el servicio de IA, que verifica los tokens del chat
+  demoMemberPhone: e.DEMO_MEMBER_PHONE ?? "+525500000000", // socio sembrado que usan los invitados del chat web
   skipTurnstile: e.SKIP_TURNSTILE === "1",
   occupancyMax: Number(e.OCCUPANCY_MAX ?? 40) || 40, // aforo máximo: el panel alerta al superarlo
   gymTz: e.GYM_TZ ?? "America/Mexico_City",
@@ -27,7 +29,7 @@ if (env.mcpKey && env.mcpKey.length < 24) throw new Error("MCP_API_KEY debe tene
 // En producción no se arranca con secretos de desarrollo.
 if (e.NODE_ENV === "production") {
   const missing = [
-    "DATABASE_URL", "BASE_URL", "ALLOWED_ORIGINS", "AI_URL", "BETTER_AUTH_SECRET", "SERVICE_KEY",
+    "DATABASE_URL", "BASE_URL", "ALLOWED_ORIGINS", "AI_URL", "BETTER_AUTH_SECRET", "SERVICE_KEY", "CHAT_TOKEN_SECRET",
     ...(env.skipTurnstile ? [] : ["TURNSTILE_SECRET"]),
   ].filter((k) => !e[k]);
   if (missing.length) throw new Error(`Faltan variables de entorno: ${missing.join(", ")}`);

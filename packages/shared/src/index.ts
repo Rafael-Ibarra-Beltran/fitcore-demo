@@ -63,3 +63,23 @@ export const replyInput = z.object({ text: z.string().min(1).max(1000) });
 /** Convierte centavos a texto MXN. */
 export const mxn = (cents: number) =>
   new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(cents / 100);
+
+// ---------- Chat web (eventos SSE de POST /chat/stream del servicio de IA) ----------
+export const chatCard = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("clases"), items: z.array(z.object({ id: z.string(), nombre: z.string(), instructor: z.string(), inicio: z.string(), cupoLibre: z.number() })) }),
+  z.object({ kind: z.literal("membresia"), socio: z.string(), estado: z.string(), vence: z.string() }),
+  z.object({ kind: z.literal("ocupacion"), personas: z.number(), aforo: z.number().nullish(), lleno: z.boolean() }),
+  z.object({ kind: z.literal("reserva"), ok: z.boolean(), mensaje: z.string() }),
+  z.object({ kind: z.literal("escalado") }),
+  z.object({ kind: z.literal("fuera_de_tema") }),
+]);
+export type ChatCard = z.infer<typeof chatCard>;
+
+export const chatEvent = z.discriminatedUnion("event", [
+  z.object({ event: z.literal("tool"), data: z.object({ name: z.string() }) }),
+  z.object({ event: z.literal("card"), data: chatCard }),
+  z.object({ event: z.literal("token"), data: z.object({ text: z.string() }) }),
+  z.object({ event: z.literal("done"), data: z.object({ conversationId: z.string(), escalated: z.boolean() }) }),
+  z.object({ event: z.literal("error"), data: z.object({ message: z.string(), status: z.number() }) }),
+]);
+export type ChatEvent = z.infer<typeof chatEvent>;

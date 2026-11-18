@@ -14,6 +14,7 @@ class Ctx:
     conversation_id: str
     member: dict | None = None  # solo se llena si el remitente está verificado (WhatsApp)
     notes: list = field(default_factory=list)
+    off_topic: bool = False
 
 
 def _obj(props: dict, required: list[str] | None = None) -> dict:
@@ -33,6 +34,8 @@ TOOLS = [
     _tool("reservar_clase", "Reserva una clase para quien escribe. `clase_id` sale de listar_clases.",
           _obj({"clase_id": {"type": "string"}}, ["clase_id"])),
     _tool("consultar_ocupacion", "Cuánta gente hay ahora en el gimnasio, el aforo máximo y si está lleno.", _obj({})),
+    _tool("fuera_de_tema", "Úsala cuando la petición NO trate del gimnasio (clases, planes, membresía, reservas, aforo, reglamento, horarios). No escala al personal.",
+          _obj({"motivo": {"type": "string"}}, ["motivo"])),
     _tool("escalar_a_humano", "Pasa la conversación al personal cuando no hay respuesta confiable o la persona lo pide.",
           _obj({"motivo": {"type": "string"}}, ["motivo"])),
 ]
@@ -91,8 +94,13 @@ def escalar_a_humano(ctx: Ctx, motivo: str):
     return "Conversación marcada para el personal."
 
 
+def fuera_de_tema(ctx: Ctx, motivo: str):
+    ctx.off_topic = True
+    return "Registrado. Responde en una frase que solo atiendes temas del gimnasio y ofrece qué sí puedes hacer."
+
+
 FUNCS = {f.__name__: f for f in (buscar_conocimiento, consultar_membresia, listar_clases, reservar_clase,
-                                 consultar_ocupacion, escalar_a_humano)}
+                                 consultar_ocupacion, fuera_de_tema, escalar_a_humano)}
 
 
 def run(ctx: Ctx, name: str, args: str | dict) -> str:

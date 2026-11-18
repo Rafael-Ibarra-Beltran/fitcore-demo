@@ -118,6 +118,7 @@ def test_webhook_verify_handshake(monkeypatch):
 
 def test_chat_rate_limit_per_ip(monkeypatch):
     monkeypatch.setattr(main.service, "handle", lambda *a, **k: ("hola", "c1"))
+    monkeypatch.setattr(main.webchat, "web_messages_today", lambda: 0)
     main._hits.clear()
     c = TestClient(main.app)
     codes = [c.post("/chat", json={"message": "hola"}).status_code for _ in range(11)]
@@ -225,3 +226,10 @@ def test_send_normaliza_movil_mexico_521_a_52(monkeypatch):
     whatsapp.send("5216644855228", "hola")
     whatsapp.send("+14155550100", "hola")
     assert sent == ["526644855228", "14155550100"]
+
+
+def test_legacy_chat_respects_global_daily_cap(monkeypatch):
+    monkeypatch.setattr(main.webchat, "web_messages_today", lambda: config.GLOBAL_DAILY_LIMIT)
+    monkeypatch.setattr(main.service, "handle", lambda *a, **k: pytest.fail("no debe gastar LLM"))
+    main._hits.clear()
+    assert TestClient(main.app).post("/chat", json={"message": "hola"}).status_code == 429

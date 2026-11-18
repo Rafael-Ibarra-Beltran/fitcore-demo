@@ -87,7 +87,7 @@ export const message = pgTable("message", {
   role: text("role", { enum: ["user", "assistant", "staff"] }).notNull(),
   content: text("content").notNull(),
   createdAt: createdAt(),
-});
+}, (t) => [index().on(t.conversationId, t.createdAt)]); // historial y conteos del chat: por conversación y fecha
 
 // Tablas del RAG: las escribe el servicio de IA con SQL directo; solo el núcleo las migra.
 export const kbDocument = pgTable("kb_document", {

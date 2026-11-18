@@ -51,6 +51,8 @@ def main() -> int:
         errors += [f"sobra /{p}/" for p in c.get("no_espera", []) if re.search(fill_re(p), reply, re.I)]
         if c.get("escala") and not core.get("/api/conversations", id=cid)[0]["escalated"]:
             errors.append("no escaló")
+        if c.get("no_escala") and core.get("/api/conversations", id=cid)[0]["escalated"]:
+            errors.append("escaló y no debía (lo ajeno al gimnasio se rechaza, no se pasa al personal)")
         fails += bool(errors)
         print(("FALLA" if errors else "ok   "), c["id"], "; ".join(errors), "" if not errors else f"\n      → {reply[:160]!r}")
         time.sleep(PAUSE)
